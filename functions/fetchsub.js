@@ -1,5 +1,4 @@
-const { YoutubeTranscript } = require('youtube-transcript');
-const https = require('https');
+import { YoutubeTranscript } from 'youtube-transcript';
 
 export async function onRequest(context) {
     const { request } = context;
@@ -84,23 +83,15 @@ export async function onRequest(context) {
     }
 }
 
-function fetchVideoTitle(videoID) {
-    return new Promise((resolve) => {
-        const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoID}&format=json`;
-        https.get(url, (res) => {
-            if (res.statusCode !== 200) return resolve(videoID);
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                try {
-                    const json = JSON.parse(data);
-                    resolve(json.title || videoID);
-                } catch (e) {
-                    resolve(videoID);
-                }
-            });
-        }).on('error', () => resolve(videoID));
-    });
+async function fetchVideoTitle(videoID) {
+    try {
+        const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoID}&format=json`);
+        if (!res.ok) return videoID;
+        const json = await res.json();
+        return json.title || videoID;
+    } catch (e) {
+        return videoID;
+    }
 }
 
 function sanitizeFilename(name) {
