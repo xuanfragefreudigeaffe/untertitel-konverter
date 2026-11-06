@@ -21,7 +21,7 @@ export async function onRequest(context) {
 
     try {
         const [rawTranscript, videoTitle] = await Promise.all([
-            fetchTranscriptNative(videoID),
+            fetchTranscriptInnertube(videoID),
             fetchVideoTitle(videoID)
         ]);
         
@@ -54,7 +54,7 @@ export async function onRequest(context) {
         if (format === 'txt') {
             content = items.map(i => i.text).join(' ');
         } else if (format === 'md') {
-            content = items.map(i => `**(${formatShortTime(i.start)})** ${i.text}`).join('\n\n');
+            content = items.map(i => `(${formatShortTime(i.start)}) ${i.text}`).join('\n\n');
         } else if (format === 'srt') {
             content = items.map((i, idx) => {
                 return `${idx + 1}\n${formatSrtTime(i.start)} --> ${formatSrtTime(i.start + (i.dur || 3))}\n${i.text}\n`;
@@ -80,7 +80,7 @@ export async function onRequest(context) {
     }
 }
 
-async function fetchTranscriptNative(videoID) {
+async function fetchTranscriptInnertube(videoID) {
     const res = await fetch(`https://www.youtube.com/watch?v=${videoID}`, {
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -89,14 +89,50 @@ async function fetchTranscriptNative(videoID) {
         }
     });
     const html = await res.text();
-    
+
+    let apiKey = '';
+    const apiKeyMatch = html.match(/"INNERTUBE_API_KEY"\s*:\s*"([a-zA-Z0-9_-]+)"/);
+    if (apiKeyMatch) {
+        apiKey = apiKeyMatch[1];
+    }
+
+    let playerResponse = null;
     const match = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});<\/script>/);
-    if (!match) throw new Error('Player response not found');
-    
-    const playerResponse = JSON.parse(match[1]);
-    const tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (match) {
+        try {
+            playerResponse = JSON.parse(match[1]);
+        } catch (e) {}
+    }
+
+    let tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+    if (!tracks && apiKey) {
+        try {
+            const apiRes = await fetch(`https://www.youtube.com/youtubei/v1/player?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                },
+                body: JSON.stringify({
+                    context: {
+                        client: {
+                            clientName: 'WEB',
+                            clientVersion: '2.20240101.01.00',
+                            hl: 'de',
+                            gl: 'DE'
+                        }
+                    },
+                    videoId: videoID
+                })
+            });
+            const apiJson = await apiRes.json();
+            tracks = apiJson?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+        } catch (e) {}
+    }
+
     if (!tracks || tracks.length === 0) throw new Error('No tracks found');
-    
+
     const track = tracks.find(t => t.languageCode === 'de') || 
                   tracks.find(t => t.languageCode === 'en') || 
                   tracks[0];
