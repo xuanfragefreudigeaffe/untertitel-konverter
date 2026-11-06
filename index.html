@@ -71,7 +71,7 @@
     </div>
 
     <div class="input-group">
-        <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=...">
+        <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." onkeydown="handleEnter(event)">
         <button class="fetch-btn" onclick="getTranscript()">Laden >|</button>
     </div>
 
@@ -94,6 +94,12 @@
 let currentData = [];
 let currentVideoTitle = '';
 
+function handleEnter(event) {
+    if (event.key === 'Enter') {
+        getTranscript();
+    }
+}
+
 async function getTranscript() {
     const url = document.getElementById('youtubeUrl').value;
     if (!url) return alert('Bitte URL eingeben!');
@@ -102,7 +108,7 @@ async function getTranscript() {
     document.getElementById('resultArea').style.display = 'block';
 
     try {
-        const res = await fetch(`/.netlify/functions/fetchsub?url=${encodeURIComponent(url)}&format=json`);
+        const res = await fetch(`/fetchsub?url=${encodeURIComponent(url)}&format=json`);
         if (!res.ok) throw new Error('Fehler beim Abrufen');
         
         const data = await res.json();
@@ -130,7 +136,7 @@ function renderTranscript() {
 
 function downloadAs(type) {
     const url = document.getElementById('youtubeUrl').value.trim();
-    window.location.href = `/.netlify/functions/fetchsub?url=${encodeURIComponent(url)}&format=${type}`;
+    window.location.href = `/fetchsub?url=${encodeURIComponent(url)}&format=${type}`;
 }
 
 function formatShortTime(sec) {
