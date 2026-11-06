@@ -102,7 +102,7 @@ async function getTranscript() {
     document.getElementById('resultArea').style.display = 'block';
 
     try {
-        const res = await fetch(`/.netlify/functions/fetchsub?url=${encodeURIComponent(url)}&format=json`);
+        const res = await fetch(`/fetchsub?url=${encodeURIComponent(url)}&format=json`);
         if (!res.ok) throw new Error('Fehler beim Abrufen');
         
         const data = await res.json();
@@ -130,7 +130,7 @@ function renderTranscript() {
 
 function downloadAs(type) {
     const url = document.getElementById('youtubeUrl').value.trim();
-    window.location.href = `/.netlify/functions/fetchsub?url=${encodeURIComponent(url)}&format=${type}`;
+    window.location.href = `/fetchsub?url=${encodeURIComponent(url)}&format=${type}`;
 }
 
 function formatShortTime(sec) {
