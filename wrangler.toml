@@ -1,5 +1,3 @@
 name = "untertitel-konverter"
 compatibility_date = "2026-11-06"
-
-[pages_build_output_dir]
-binding = "ASSETS"
+pages_build_output_dir = "."
